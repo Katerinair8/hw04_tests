@@ -42,7 +42,7 @@ class PostURLTests(TestCase):
             with self.subTest(adress=adress):
                 response = self.guest_client.get(adress)
                 self.assertEqual(response.status_code, 200)
-    
+
     def test_response_code_authorized(self):
         post_id = PostURLTests.post.id
         url_names = {
@@ -64,7 +64,7 @@ class PostURLTests(TestCase):
             with self.subTest(adress=adress):
                 response = self.guest_client.get(adress)
                 self.assertEqual(response.status_code, 302)
-    
+
     def test_unexisting_page(self):
         response = self.guest_client.get('/unexisting_page/')
         self.assertEqual(response.status_code, 404)
@@ -78,10 +78,13 @@ class PostURLTests(TestCase):
 
     def test_post_edit_url_redirect_anonymous_on_admin_login(self):
         post_id = PostURLTests.post.id
-        login_url = reverse(f'posts:post_edit', args=(post_id,))
+        login_url = reverse('posts:post_edit', args=(post_id,))
         post_create_url = reverse('users:login')
         target_url = f'{post_create_url}?next={login_url}'
-        response = self.guest_client.get(f'/posts/{post_id}/edit/', follow=True)
+        response = self.guest_client.get(
+            f'/posts/{post_id}/edit/',
+            follow=True
+        )
         self.assertRedirects(response, target_url)
 
     def test_urls_uses_correct_template(self):
