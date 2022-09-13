@@ -1,10 +1,28 @@
+attrs==22.1.0
+certifi==2022.6.15.1
+chardet==3.0.4
+Django==2.2.16
 django-debug-toolbar==2.2
-django==2.2.16
+Faker==12.0.1
+idna==2.8
+importlib-metadata==4.12.0
+mixer==7.1.2
+more-itertools==8.14.0
+packaging==21.3
+pluggy==0.13.1
+py==1.11.0
+pyparsing==3.0.9
+pytest==5.3.5
 pytest-django==3.8.0
 pytest-pythonpath==0.7.3
-pytest==5.3.5             # via pytest-django
+python-dateutil==2.8.2
+pytils==0.4.1
+pytz==2022.2.1
 requests==2.22.0
-six==1.14.0               # via packaging
+six==1.14.0
 sorl-thumbnail==12.6.3
-mixer==7.1.2
-Faker==12.0.1
+sqlparse==0.4.2
+typing_extensions==4.3.0
+urllib3==1.25.11
+wcwidth==0.2.5
+zipp==3.8.1
