@@ -126,6 +126,7 @@ class PostPagesTests(TestCase):
         self.assertIn(self.post, response_index.context['page_obj'])
         self.assertIn(self.post, response_group.context['page_obj'])
 
+
 class TestingPaginator(TestCase):
     """Проверка паджинатора и наличия класса Page в контексте шаблона"""
     @classmethod
