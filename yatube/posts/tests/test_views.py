@@ -114,6 +114,17 @@ class PostPagesTests(TestCase):
         self.assertEqual(post.author, self.post.author)
         self.assertEqual(post.group, self.post.group)
 
+    def test_post_group_on_pages(self):
+        """
+        Если при создании поста указать группу, то этот пост появляется:
+        на главной странице сайта
+        на странице выбранной группы
+        """
+        response_index = self.authorized_client.get(self.index_page)
+        response_group = self.authorized_client.get(self.group_posts)
+
+        self.assertIn(self.post, response_index.context['page_obj'])
+        self.assertIn(self.post, response_group.context['page_obj'])
 
 class TestingPaginator(TestCase):
     """Проверка паджинатора и наличия класса Page в контексте шаблона"""
