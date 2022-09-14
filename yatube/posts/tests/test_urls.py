@@ -138,6 +138,9 @@ class PostURLTests(TestCase):
         post_detail = self.post_by_id
         target_url = f'{post_detail}'
 
-        response = self.authorized_client_author.get(self.post_edit, follow=True)
+        response = self.authorized_client_author.get(
+            self.post_edit,
+            follow=True
+        )
 
         self.assertRedirects(response, target_url)

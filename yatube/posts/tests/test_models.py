@@ -70,5 +70,5 @@ class GroupModelTest(TestCase):
         """__str__  group - это строчка с содержимым group.title."""
         group = GroupModelTest.group
         expected_object_name = group.title
-        
+
         self.assertEqual(expected_object_name, str(group))

@@ -139,8 +139,9 @@ class TestingPaginator(TestCase):
     def test_pages_contain_ten_records_and_class_page(self):
         """Проверка работы паджинатора и использования
         класса Page в контексте"""
-        posts_on_second_page = len(self.posts_for_test) - settings.POST_PER_PAGE
-
+        posts_on_second_page = len(
+            self.posts_for_test) - settings.POST_PER_PAGE
+    
         pages = (
             reverse('posts:index'),
             reverse(
@@ -162,7 +163,8 @@ class TestingPaginator(TestCase):
                 self.assertEqual(
                     len(context_first_page),
                     settings.POST_PER_PAGE,
-                    f'На странице {page} показывается {settings.POST_PER_PAGE} постов'
+                    f'На странице {page} показывается \
+                    {settings.POST_PER_PAGE} постов'
                 )
                 self.assertEqual(
                     len(context_second_page),
