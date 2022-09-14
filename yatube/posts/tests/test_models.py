@@ -25,6 +25,7 @@ class PostModelTest(TestCase):
         """Проверяем, что у модели Post корректно работает __str__."""
         post = PostModelTest.post
         expected_object_name = post.text[:15]
+
         self.assertEqual(expected_object_name, str(post))
 
 
@@ -34,7 +35,7 @@ class GroupModelTest(TestCase):
         super().setUpClass()
         cls.group = Group.objects.create(
             title='Тестовый заголовок',
-            slug = 'test-slug',
+            slug='test-slug',
         )
 
     def test_verbose_name(self):
@@ -45,6 +46,7 @@ class GroupModelTest(TestCase):
             'slug': 'slug',
             'description': 'Описание группы',
         }
+
         for field, expected_value in field_verboses.items():
             with self.subTest(field=field):
                 self.assertEqual(
@@ -58,6 +60,7 @@ class GroupModelTest(TestCase):
             'title': 'Дайте короткое название группы',
             'description': 'Дайте короткое описание группы',
         }
+
         for field, expected_value in field_help_text.items():
             with self.subTest(field=field):
                 self.assertEqual(
@@ -67,4 +70,5 @@ class GroupModelTest(TestCase):
         """__str__  group - это строчка с содержимым group.title."""
         group = GroupModelTest.group
         expected_object_name = group.title
+        
         self.assertEqual(expected_object_name, str(group))

@@ -55,7 +55,7 @@ def post_create(request, method='POST'):
             post.save()
             return redirect('posts:profile', username=post.author)
     context = {
-        'form': form
+        'form': form,
     }
     return render(request, 'posts/create_post.html', context)
 
@@ -64,7 +64,7 @@ def post_create(request, method='POST'):
 def post_edit(request, post_id: int):
     post = get_object_or_404(Post, pk=post_id)
     form = PostForm(
-        request.POST or None, 
+        request.POST or None,
         files=request.FILES or None,
         instance=post
     )
@@ -78,6 +78,6 @@ def post_edit(request, post_id: int):
     context = {
         'is_edit': True,
         'post': post,
-        'form': form
+        'form': form,
     }
     return render(request, 'posts/create_post.html', context)

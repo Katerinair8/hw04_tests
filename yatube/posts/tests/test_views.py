@@ -1,12 +1,11 @@
-from urllib import response
 from django import forms
 from django.urls import reverse
 from django.core.paginator import Page
 from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 from ..models import Group, Post
-from django.conf import settings
 
 User = get_user_model()
 
@@ -28,10 +27,22 @@ class PostPagesTests(TestCase):
         )
         cls.post_create = reverse('posts:post_create')
         cls.index_page = reverse('posts:index')
-        cls.group_posts = reverse('posts:group_posts', kwargs={'slug': cls.group.slug})
-        cls.profile = reverse('posts:profile', kwargs={'username': cls.user.username})
-        cls.post_detail = reverse('posts:post_detail', args={cls.post.id})
-        cls.post_edit = reverse('posts:post_edit', args={cls.post.id})
+        cls.group_posts = reverse(
+            'posts:group_posts',
+            kwargs={'slug': cls.group.slug}
+        )
+        cls.profile = reverse(
+            'posts:profile',
+            kwargs={'username': cls.user.username}
+        )
+        cls.post_detail = reverse(
+            'posts:post_detail',
+            args={cls.post.id}
+        )
+        cls.post_edit = reverse(
+            'posts:post_edit',
+            args={cls.post.id}
+        )
 
     def setUp(self):
         self.authorized_client = Client()
@@ -60,6 +71,7 @@ class PostPagesTests(TestCase):
             self.post_create,
             self.post_edit,
         ]
+
         for page in test_pages:
             response = self.authorized_client.get(page)
             form_fields = {
@@ -80,18 +92,21 @@ class PostPagesTests(TestCase):
             self.profile,
             self.group_posts,
         ]
+
         for page in test_pages:
             with self.subTest(page=page):
                 response = self.authorized_client.get(page)
                 post = response.context['page_obj'][0]
                 self.checking_context(post)
-    
+
     def test_post_detail_shows_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом"""
         response = self.client.get(self.post_detail)
+
         post = response.context.get('post')
+
         self.checking_context(post)
-    
+
     def checking_context(self, post):
         """Проверка атрибутов поста."""
         self.assertEqual(post.id, self.post.id)
@@ -125,11 +140,19 @@ class TestingPaginator(TestCase):
         """Проверка работы паджинатора и использования
         класса Page в контексте"""
         posts_on_second_page = len(self.posts_for_test) - settings.POST_PER_PAGE
+
         pages = (
-            reverse('posts:index'), 
-            reverse('posts:group_posts', kwargs={'slug': f'{self.group.slug}'}), 
-            reverse('posts:profile', kwargs={'username': f'{self.user.username}'}),
+            reverse('posts:index'),
+            reverse(
+                'posts:group_posts',
+                kwargs={'slug': f'{self.group.slug}'}
+            ),
+            reverse(
+                'posts:profile',
+                kwargs={'username': f'{self.user.username}'}
+            ),
         )
+
         for page in pages:
             with self.subTest(page=page):
                 first_page = self.client.get(page)
