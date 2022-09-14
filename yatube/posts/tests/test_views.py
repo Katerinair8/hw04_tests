@@ -141,7 +141,7 @@ class TestingPaginator(TestCase):
         класса Page в контексте"""
         posts_on_second_page = len(
             self.posts_for_test) - settings.POST_PER_PAGE
-    
+
         pages = (
             reverse('posts:index'),
             reverse(
