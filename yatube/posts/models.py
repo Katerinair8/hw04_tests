@@ -16,7 +16,6 @@ class Group(models.Model):
     slug = models.SlugField(
         max_length=100,
         unique=True,
-        blank=True,
         verbose_name='slug'
     )
     description = models.TextField(
@@ -30,11 +29,6 @@ class Group(models.Model):
 
     def __str__(self):
         return self.title
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.title)[:100]
-        super().save(*args, **kwargs)
 
 
 class Post(models.Model):
@@ -59,6 +53,11 @@ class Post(models.Model):
         related_name='posts',
         verbose_name='Группа',
         help_text='Группа, к которой будет относиться пост'
+    )
+    image = models.ImageField(
+        'Картинка',
+        upload_to='posts/',
+        blank=True
     )
 
     class Meta:

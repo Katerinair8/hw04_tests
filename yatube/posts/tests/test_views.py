@@ -1,12 +1,12 @@
+from urllib import response
 from django import forms
 from django.urls import reverse
 from django.core.paginator import Page
 from django.test import Client, TestCase
-
 from django.contrib.auth import get_user_model
 
 from ..models import Group, Post
-from yatube.settings import POST_PER_PAGE
+from django.conf import settings
 
 User = get_user_model()
 
@@ -15,7 +15,7 @@ class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='KtoTo')
+        cls.user = User.objects.create_user(username='Somebody')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test-slug',
@@ -24,8 +24,14 @@ class PostPagesTests(TestCase):
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый текст',
-            id=333,
+            group=cls.group,
         )
+        cls.post_create = reverse('posts:post_create')
+        cls.index_page = reverse('posts:index')
+        cls.group_posts = reverse('posts:group_posts', kwargs={'slug': cls.group.slug})
+        cls.profile = reverse('posts:profile', kwargs={'username': cls.user.username})
+        cls.post_detail = reverse('posts:post_detail', args={cls.post.id})
+        cls.post_edit = reverse('posts:post_edit', args={cls.post.id})
 
     def setUp(self):
         self.authorized_client = Client()
@@ -34,38 +40,64 @@ class PostPagesTests(TestCase):
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_pages_names = {
-            reverse('posts:index'): 'posts/index.html',
-            reverse('posts:group_posts', kwargs={'slug': self.group.slug}):
-            'posts/group_list.html',
-            reverse('posts:profile', kwargs={'username': self.user.username}):
-            'posts/profile.html',
-            reverse('posts:post_detail', args={self.post.id}):
-            'posts/post_detail.html',
-            reverse('posts:post_create'): 'posts/create_post.html',
-            reverse('posts:post_edit', args={self.post.id}):
-            'posts/create_post.html',
+            self.index_page: 'posts/index.html',
+            self.group_posts: 'posts/group_list.html',
+            self.profile: 'posts/profile.html',
+            self.post_detail: 'posts/post_detail.html',
+            self.post_create: 'posts/create_post.html',
+            self.post_edit: 'posts/create_post.html',
         }
 
         for reverse_name, template in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
                 self.assertTemplateUsed(response, template)
+                self.assertEqual(response.status_code, 200)
 
-    def test_index_show_correct_context(self):
+    def test_post_create_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse('posts:post_create'))
-        form_fields = {
-            'group': forms.fields.ChoiceField,
-            'text': forms.fields.CharField,
-        }
+        test_pages = [
+            self.post_create,
+            self.post_edit,
+        ]
+        for page in test_pages:
+            response = self.authorized_client.get(page)
+            form_fields = {
+                'group': forms.fields.ChoiceField,
+                'text': forms.fields.CharField,
+            }
 
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_fields = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_fields, expected)
+            for key, expected in form_fields.items():
+                with self.subTest(key=key):
+                    form_fields = response.context.get('form').fields.get(key)
+                    self.assertIsInstance(form_fields, expected)
 
-
-POSTS_FOR_PAGINATOR_TESTING = 13
+    def test_posts_pages_show_correct_context(self):
+        """Шаблон group_posts, profile, index_page
+        сформированы с правильным контекстом."""
+        test_pages = [
+            self.index_page,
+            self.profile,
+            self.group_posts,
+        ]
+        for page in test_pages:
+            with self.subTest(page=page):
+                response = self.authorized_client.get(page)
+                post = response.context['page_obj'][0]
+                self.checking_context(post)
+    
+    def test_post_detail_shows_correct_context(self):
+        """Шаблон post_detail сформирован с правильным контекстом"""
+        response = self.client.get(self.post_detail)
+        post = response.context.get('post')
+        self.checking_context(post)
+    
+    def checking_context(self, post):
+        """Проверка атрибутов поста."""
+        self.assertEqual(post.id, self.post.id)
+        self.assertEqual(post.text, self.post.text)
+        self.assertEqual(post.author, self.post.author)
+        self.assertEqual(post.group, self.post.group)
 
 
 class TestingPaginator(TestCase):
@@ -75,50 +107,48 @@ class TestingPaginator(TestCase):
         super().setUpClass()
         cls.group = Group.objects.create(
             title='Тестовая группа',
-            slug='testslug',
+            slug='test-slug',
         )
+        cls.POSTS_FOR_PAGINATOR_TESTING = settings.POST_PER_PAGE + 3
+        cls.user = User.objects.create_user(username='Somebody')
+        cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
+        cls.posts_for_test = []
+        for test_num in range(1, cls.POSTS_FOR_PAGINATOR_TESTING):
+            cls.posts_for_test.append(Post(
+                author=cls.user,
+                text=f'Test{test_num}',
+                group=cls.group))
+        Post.objects.bulk_create(cls.posts_for_test)
 
-    def setUp(self):
-        self.user = User.objects.create_user(username='Somebody')
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
-        self.posts_for_test = []
-        for i in range(1, POSTS_FOR_PAGINATOR_TESTING):
-            self.posts_for_test.append(Post(
-                author=self.user,
-                text=f'Test{i}',
-                group=TestingPaginator.group))
-        Post.objects.bulk_create(self.posts_for_test)
-
-    def test_first_page_contains_ten_records_and_class_page(self):
+    def test_pages_contain_ten_records_and_class_page(self):
         """Проверка работы паджинатора и использования
         класса Page в контексте"""
-        group = TestingPaginator.group
-        user = self.user
-        posts_on_second_page = len(self.posts_for_test) - POST_PER_PAGE
-        pages = [
-            reverse('posts:index'),
-            reverse('posts:group_posts', kwargs={'slug': f'{group.slug}'}),
-            reverse('posts:profile', kwargs={'username': f'{user.username}'}),
-        ]
+        posts_on_second_page = len(self.posts_for_test) - settings.POST_PER_PAGE
+        pages = (
+            reverse('posts:index'), 
+            reverse('posts:group_posts', kwargs={'slug': f'{self.group.slug}'}), 
+            reverse('posts:profile', kwargs={'username': f'{self.user.username}'}),
+        )
         for page in pages:
             with self.subTest(page=page):
-                response1 = self.client.get(page)
-                response2 = self.client.get(page + '?page=2')
-                context = response1.context['page_obj']
+                first_page = self.client.get(page)
+                second_page = self.client.get(page + '?page=2')
+                context_first_page = first_page.context['page_obj']
+                context_second_page = second_page.context['page_obj']
                 self.assertEqual(
-                    len(response1.context['page_obj']),
-                    POST_PER_PAGE,
-                    f'На странице {page} показывается {POST_PER_PAGE} постов'
+                    len(context_first_page),
+                    settings.POST_PER_PAGE,
+                    f'На странице {page} показывается {settings.POST_PER_PAGE} постов'
                 )
                 self.assertEqual(
-                    len(response2.context['page_obj']),
+                    len(context_second_page),
                     posts_on_second_page,
                     f'На второй странице {page} '
                     f'должно быть {posts_on_second_page}'
                 )
                 self.assertIsInstance(
-                    context,
+                    context_first_page,
                     Page,
                     f'На станице {page} нет класса Page в контексте'
                 )

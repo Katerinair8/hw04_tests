@@ -18,7 +18,7 @@ class PostModelTest(TestCase):
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Тестовый пост',
+            text='Тестовый пост c очень большим количеством букв',
         )
 
     def test_post_model_correct_object_names(self):
@@ -33,22 +33,9 @@ class GroupModelTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.group = Group.objects.create(
-            title='З' * 200,
+            title='Тестовый заголовок',
+            slug = 'test-slug',
         )
-
-    def test_text_convert_to_slug(self):
-        """Содержимое поля title преобразуется в slug."""
-        task = GroupModelTest.group
-        slug = task.slug
-        self.assertEqual(slug, 'z' * 100)
-
-    def test_text_slug_max_length_not_exceed(self):
-        """Длинный slug обрезается и не
-        превышает max_length поля slug в модели."""
-        task = GroupModelTest.group
-        max_length_slug = task._meta.get_field('slug').max_length
-        length_slug = len(task.slug)
-        self.assertEqual(max_length_slug, length_slug)
 
     def test_verbose_name(self):
         """verbose_name в полях совпадает с ожидаемым."""
