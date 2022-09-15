@@ -136,11 +136,10 @@ class PostURLTests(TestCase):
     def test_not_author_edit_post(self):
         """Проверяет, что не автор поста не может редактировать пост"""
         post_detail = self.post_by_id
-        target_url = f'{post_detail}'
 
         response = self.authorized_client_author.get(
             self.post_edit,
             follow=True
         )
 
-        self.assertRedirects(response, target_url)
+        self.assertRedirects(response, post_detail)

@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django import forms
 from django.urls import reverse
 from django.core.paginator import Page
@@ -63,14 +65,14 @@ class PostPagesTests(TestCase):
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
                 self.assertTemplateUsed(response, template)
-                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_post_create_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
-        test_pages = [
+        test_pages = (
             self.post_create,
             self.post_edit,
-        ]
+        )
 
         for page in test_pages:
             response = self.authorized_client.get(page)
@@ -87,17 +89,25 @@ class PostPagesTests(TestCase):
     def test_posts_pages_show_correct_context(self):
         """Шаблон group_posts, profile, index_page
         сформированы с правильным контекстом."""
-        test_pages = [
+        test_pages = (
             self.index_page,
             self.profile,
             self.group_posts,
-        ]
+        )
+
+        response_profile = self.authorized_client.get(self.profile)
+        response_group_posts = self.authorized_client.get(self.group_posts)
+        author = response_profile.context['author']
+        group = response_group_posts.context['group']
 
         for page in test_pages:
             with self.subTest(page=page):
                 response = self.authorized_client.get(page)
                 post = response.context['page_obj'][0]
                 self.checking_context(post)
+
+        self.assertEqual(author.username, self.user.username)
+        self.assertEqual(group.slug, self.group.slug)
 
     def test_post_detail_shows_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом"""
@@ -125,6 +135,45 @@ class PostPagesTests(TestCase):
 
         self.assertIn(self.post, response_index.context['page_obj'])
         self.assertIn(self.post, response_group.context['page_obj'])
+
+    def test_post_not_in_other_groups(self):
+        """
+        Проверяет не попадает ли пост с указанной
+        группой в другие группы
+        """
+        group_test_1 = Group.objects.create(
+            title='test_group_1',
+            slug='test_slug_1',
+            description='test_description_1',
+        )
+        group_test_2 = Group.objects.create(
+            title='test_group_2',
+            slug='test_slug_2',
+            description='test_description_2',
+        )
+        post_test = Post.objects.create(
+            author=self.user,
+            text='Тестовый текст с кучей букв',
+            group=group_test_1,
+        )
+
+        response_group_test_1 = self.authorized_client.get(
+            reverse(
+                'posts:group_posts',
+                kwargs={'slug': f'{group_test_1.slug}'}
+            )
+        )
+        response_group_test_2 = self.authorized_client.get(
+            reverse(
+                'posts:group_posts',
+                kwargs={'slug': f'{group_test_2.slug}'}
+            )
+        )
+        group_test_post_1 = response_group_test_1.context['page_obj']
+        group_test_post_2 = response_group_test_2.context['page_obj']
+
+        self.assertIn(post_test, group_test_post_1)
+        self.assertNotIn(post_test, group_test_post_2)
 
 
 class TestingPaginator(TestCase):
