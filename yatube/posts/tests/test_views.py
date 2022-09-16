@@ -6,7 +6,6 @@ from django.core.paginator import Page
 from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.core.cache import cache
 
 from ..models import Group, Post
 
@@ -50,7 +49,6 @@ class PostPagesTests(TestCase):
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        cache.clear()
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -134,7 +132,6 @@ class PostPagesTests(TestCase):
         self.assertEqual(post.text, self.post.text)
         self.assertEqual(post.author, self.post.author)
         self.assertEqual(post.group, self.post.group)
-        self.assertEqual(post.image, self.post.image)
 
     def test_post_group_on_pages(self):
         """
@@ -186,25 +183,6 @@ class PostPagesTests(TestCase):
 
         self.assertIn(post_test, context_with_post)
         self.assertNotIn(post_test, context_without_post)
-
-    def cache_index(self):
-        """
-        Проверка что на главной странице список записей хранится
-        в кеше и обновляется раз в 20 секунд
-        """
-        response = self.authorized_client.get(
-            reverse('posts:post_create'),
-            {'post_1': 'Тестовый пост'},
-            follow=True,
-        )
-        response_1 = self.authorized_client.get(
-            reverse('posts:index')
-        )
-
-        self.assertEqual(response.content, response_1.content)
-        cache.clear()
-        self.assertNotIn(response.content, response_1.content)
-        cache.clear()
 
 
 class TestingPaginator(TestCase):

@@ -146,4 +146,4 @@ dmypy.json
 .mypy_cache
 
 # media
-.media/
+media/
