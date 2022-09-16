@@ -102,7 +102,7 @@ class PostPagesTests(TestCase):
         Шаблон profile сформирован с правильным контекстом
         """
         response = self.authorized_client.get(self.profile)
-        
+
         author = response.context['author']
         post = response.context['page_obj'][0]
 
@@ -186,20 +186,20 @@ class PostPagesTests(TestCase):
 
         self.assertIn(post_test, context_with_post)
         self.assertNotIn(post_test, context_without_post)
-    
+
     def cache_index(self):
         """
         Проверка что на главной странице список записей хранится
         в кеше и обновляется раз в 20 секунд
         """
         response = self.authorized_client.get(
-                reverse('posts:post_create'),
-                {'post_1': 'Тестовый пост'},
-                follow=True,
-            )
+            reverse('posts:post_create'),
+            {'post_1': 'Тестовый пост'},
+            follow=True,
+        )
         response_1 = self.authorized_client.get(
-                reverse('posts:index')
-            )
+            reverse('posts:index')
+        )
 
         self.assertEqual(response.content, response_1.content)
         cache.clear()

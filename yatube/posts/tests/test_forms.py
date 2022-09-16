@@ -1,7 +1,6 @@
 from http import HTTPStatus
 import shutil
 import tempfile
-from xml.etree.ElementTree import Comment
 
 from django.urls import reverse
 from django.test import Client, TestCase, override_settings
@@ -15,6 +14,7 @@ from ..models import Post, Group
 User = get_user_model()
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostFormTests(TestCase):
@@ -47,7 +47,7 @@ class PostFormTests(TestCase):
     def test_create_post(self):
         """Валидная форма создает новый пост."""
         post_count = Post.objects.count()
-        small_gif = (            
+        small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
@@ -123,15 +123,14 @@ class PostFormTests(TestCase):
         response = self.authorized_client.post(
             reverse(
                 'posts:add_comment',
-                args=(PostFormTests.post.id,)
-                ),
+                args=(PostFormTests.post.id,)),
                 data=form_data,
                 follow=True
         )
         redirect_url = reverse(
             'posts:post_detail',
             args=(PostFormTests.post.id,)
-            )
+        )
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertRedirects(response, redirect_url)
