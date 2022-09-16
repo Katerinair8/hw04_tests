@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 
 from ..models import Post, Group
 
@@ -37,6 +38,7 @@ class PostURLTests(TestCase):
         self.authorized_client.force_login(self.user)
         self.authorized_client_author = Client()
         self.authorized_client_author.force_login(self.author)
+        cache.clear()
 
     def test_response(self):
         """Тестирует возвращается ли код ответа 200 при
@@ -88,6 +90,7 @@ class PostURLTests(TestCase):
         по несуществующему эндпоинту"""
         response = self.guest_client.get('/unexisting_page/')
 
+        self.assertTemplateUsed(response, 'core/404.html')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     def test_create_redirect_anonymous_to_login(self):

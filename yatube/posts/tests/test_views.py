@@ -6,6 +6,7 @@ from django.core.paginator import Page
 from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.core.cache import cache
 
 from ..models import Group, Post
 
@@ -39,16 +40,17 @@ class PostPagesTests(TestCase):
         )
         cls.post_detail = reverse(
             'posts:post_detail',
-            args={cls.post.id}
+            args=(cls.post.id,)
         )
         cls.post_edit = reverse(
             'posts:post_edit',
-            args={cls.post.id}
+            args=(cls.post.id,)
         )
 
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
+        cache.clear()
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -86,27 +88,36 @@ class PostPagesTests(TestCase):
                     form_fields = response.context.get('form').fields.get(key)
                     self.assertIsInstance(form_fields, expected)
 
-    def test_posts_pages_show_correct_context(self):
-        """Шаблон group_posts, profile, index_page
-        сформированы с правильным контекстом."""
-        test_pages = (
-            self.index_page,
-            self.profile,
-            self.group_posts,
-        )
+    def test_index_page_correct_context(self):
+        """
+        Шаблон index_page сформирован с правильным контекстом
+        """
+        response = self.authorized_client.get(self.index_page)
+        post = response.context['page_obj'][0]
 
-        response_profile = self.authorized_client.get(self.profile)
-        response_group_posts = self.authorized_client.get(self.group_posts)
-        author = response_profile.context['author']
-        group = response_group_posts.context['group']
+        self.checking_context(post)
 
-        for page in test_pages:
-            with self.subTest(page=page):
-                response = self.authorized_client.get(page)
-                post = response.context['page_obj'][0]
-                self.checking_context(post)
+    def test_profile_page_correct_context(self):
+        """
+        Шаблон profile сформирован с правильным контекстом
+        """
+        response = self.authorized_client.get(self.profile)
+        
+        author = response.context['author']
+        post = response.context['page_obj'][0]
 
+        self.checking_context(post)
         self.assertEqual(author.username, self.user.username)
+
+    def test_group_page_correct_context(self):
+        """
+        Шаблон group_posts сформирован с правильным контекстом
+        """
+        response = self.authorized_client.get(self.group_posts)
+        post = response.context['page_obj'][0]
+        group = response.context['group']
+
+        self.checking_context(post)
         self.assertEqual(group.slug, self.group.slug)
 
     def test_post_detail_shows_correct_context(self):
@@ -123,6 +134,7 @@ class PostPagesTests(TestCase):
         self.assertEqual(post.text, self.post.text)
         self.assertEqual(post.author, self.post.author)
         self.assertEqual(post.group, self.post.group)
+        self.assertEqual(post.image, self.post.image)
 
     def test_post_group_on_pages(self):
         """
@@ -141,12 +153,12 @@ class PostPagesTests(TestCase):
         Проверяет не попадает ли пост с указанной
         группой в другие группы
         """
-        group_test_1 = Group.objects.create(
+        group_with_post = Group.objects.create(
             title='test_group_1',
             slug='test_slug_1',
             description='test_description_1',
         )
-        group_test_2 = Group.objects.create(
+        group_without_post = Group.objects.create(
             title='test_group_2',
             slug='test_slug_2',
             description='test_description_2',
@@ -154,26 +166,45 @@ class PostPagesTests(TestCase):
         post_test = Post.objects.create(
             author=self.user,
             text='Тестовый текст с кучей букв',
-            group=group_test_1,
+            group=group_with_post,
         )
 
-        response_group_test_1 = self.authorized_client.get(
+        response_with_post = self.authorized_client.get(
             reverse(
                 'posts:group_posts',
-                kwargs={'slug': f'{group_test_1.slug}'}
+                kwargs={'slug': f'{group_with_post.slug}'}
             )
         )
-        response_group_test_2 = self.authorized_client.get(
+        response_without_post = self.authorized_client.get(
             reverse(
                 'posts:group_posts',
-                kwargs={'slug': f'{group_test_2.slug}'}
+                kwargs={'slug': f'{group_without_post.slug}'}
             )
         )
-        group_test_post_1 = response_group_test_1.context['page_obj']
-        group_test_post_2 = response_group_test_2.context['page_obj']
+        context_with_post = response_with_post.context['page_obj']
+        context_without_post = response_without_post.context['page_obj']
 
-        self.assertIn(post_test, group_test_post_1)
-        self.assertNotIn(post_test, group_test_post_2)
+        self.assertIn(post_test, context_with_post)
+        self.assertNotIn(post_test, context_without_post)
+    
+    def cache_index(self):
+        """
+        Проверка что на главной странице список записей хранится
+        в кеше и обновляется раз в 20 секунд
+        """
+        response = self.authorized_client.get(
+                reverse('posts:post_create'),
+                {'post_1': 'Тестовый пост'},
+                follow=True,
+            )
+        response_1 = self.authorized_client.get(
+                reverse('posts:index')
+            )
+
+        self.assertEqual(response.content, response_1.content)
+        cache.clear()
+        self.assertNotIn(response.content, response_1.content)
+        cache.clear()
 
 
 class TestingPaginator(TestCase):

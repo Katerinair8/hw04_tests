@@ -1,19 +1,28 @@
+from http import HTTPStatus
+import shutil
+import tempfile
+from xml.etree.ElementTree import Comment
+
 from django.urls import reverse
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from ..forms import PostForm
 from ..models import Post, Group
 
 User = get_user_model()
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
-        cls.group = cls.group = Group.objects.create(
+        cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test-slug',
             description='Тестовое описание',
@@ -25,6 +34,11 @@ class PostFormTests(TestCase):
         )
         cls.form = PostForm()
 
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
@@ -33,9 +47,23 @@ class PostFormTests(TestCase):
     def test_create_post(self):
         """Валидная форма создает новый пост."""
         post_count = Post.objects.count()
+        small_gif = (            
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
         form_data = {
             'text': 'Тестовый текст',
-            'author': self.user
+            'author': self.user,
+            'image': uploaded,
         }
 
         response = self.authorized_client.post(
@@ -53,7 +81,7 @@ class PostFormTests(TestCase):
             Post.objects.filter(
                 text='Тестовый текст',
                 author=self.user,
-                group=self.post.group,
+                image='posts/small.gif'
             ).exists()
         )
 
@@ -85,3 +113,25 @@ class PostFormTests(TestCase):
                 group=self.group,
             ).exists()
         )
+
+    def test_comments(self):
+        """Авторизированный пользователь может комментировать посты"""
+
+        form_data = {
+            'text': 'test_comment',
+        }
+        response = self.authorized_client.post(
+            reverse(
+                'posts:add_comment',
+                args=(PostFormTests.post.id,)
+                ),
+                data=form_data,
+                follow=True
+        )
+        redirect_url = reverse(
+            'posts:post_detail',
+            args=(PostFormTests.post.id,)
+            )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertRedirects(response, redirect_url)
