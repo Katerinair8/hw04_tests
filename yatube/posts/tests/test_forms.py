@@ -124,8 +124,8 @@ class PostFormTests(TestCase):
             reverse(
                 'posts:add_comment',
                 args=(PostFormTests.post.id,)),
-                data=form_data,
-                follow=True
+            data=form_data,
+            follow=True
         )
         redirect_url = reverse(
             'posts:post_detail',
